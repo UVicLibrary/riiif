@@ -60,22 +60,24 @@ RSpec.describe Riiif::ImagesController do
 
         context 'with a cache store configured' do
           before do
-            Rails.cache.clear
-            FileUtils.mkdir_p("tmp/cache")
+            FileUtils.mkdir_p("tmp/test_cache_dir")
             allow(controller).to receive(:error_image).with(:unauthorized).and_return(unauthorized_image)
-            allow(Riiif::Image).to receive(:cache).and_return(ActiveSupport::Cache::FileStore.new("tmp/cache"))
+            allow(Riiif::Image).to receive(:cache).and_return(ActiveSupport::Cache::FileStore.new("tmp/test_cache_dir"))
+            # Do not cache the image info for now so that we can check if the cache is empty later
+            allow(Riiif::Image).to receive(:info_service).and_return(lambda { |_, image| image.info })
           end
 
           let(:unauthorized_image) { Riiif::Image.new('abcd1234', file) }
           let(:file) { instance_double(Riiif::File, extract: 'test data', info: {}) }
 
           it 'does not cache the unauthorized image' do
+            expect(Riiif::Image.cache).not_to receive(:fetch)
             get :show, params: { id: 'abcd1234', action: 'show', region: 'full', size: 'full',
                                  rotation: '0', quality: 'default', format: 'jpg' }
-            expect(Dir.empty?('tmp/cache')).to be true
+            expect(Dir.empty?("tmp/test_cache_dir")).to be true
+            FileUtils.rm_rf "tmp/test_cache_dir"
           end
 
-          after { FileUtils.rm_rf("tmp/cache") }
         end
       end
 
