@@ -23,7 +23,7 @@ RSpec.describe Riiif::Image do
         .with("convert -quality 85 -sampling-factor 4:2:0 -strip \'#{filename}\' jpg:-")
         .and_return('imagedata')
 
-      expect(subject.render('size' => 'full', format: 'jpg')).to eq 'imagedata'
+      expect(subject.render({ 'size' => 'full', format: 'jpg' })).to eq 'imagedata'
     end
   end
 
@@ -69,7 +69,7 @@ RSpec.describe Riiif::Image do
 
       it 'does not fetch the file' do
         expect(described_class.file_resolver).not_to receive(:find)
-        expect(subject.render(region: 'full', format: 'png')).to eq 'expected'
+        expect(subject.render({ region: 'full', format: 'png' })).to eq 'expected'
       end
     end
   end
@@ -81,7 +81,7 @@ RSpec.describe Riiif::Image do
     end
 
     describe 'region' do
-      subject(:render) { image.render(region: region, format: 'png') }
+      subject(:render) { image.render({ region: region, format: 'png' }) }
 
       context 'when specifing full size' do
         let(:region) { 'full' }
@@ -133,7 +133,7 @@ RSpec.describe Riiif::Image do
     end
 
     describe 'resize' do
-      subject(:render) { image.render(size: size, format: 'png') }
+      subject(:render) { image.render({ size: size, format: 'png' }) }
 
       context 'when specifing full size' do
         let(:size) { 'full' }
@@ -214,7 +214,7 @@ RSpec.describe Riiif::Image do
     end
 
     describe 'rotate' do
-      subject(:render) { image.render(rotation: rotation, format: 'png') }
+      subject(:render) { image.render({ rotation: rotation, format: 'png' }) }
 
       context 'without rotating' do
         let(:rotation) { '0' }
@@ -246,7 +246,7 @@ RSpec.describe Riiif::Image do
     end
 
     describe 'quality' do
-      subject(:render) { image.render(quality: quality, format: 'png') }
+      subject(:render) { image.render({ quality: quality, format: 'png' }) }
 
       context 'when default is specified' do
         let(:quality) { 'default' }
