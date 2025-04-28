@@ -57,6 +57,28 @@ RSpec.describe Riiif::ImagesController do
           expect(response.body).to eq 'test data'
           expect(response.code).to eq '401'
         end
+
+        context 'with a cache store configured' do
+          before do
+            FileUtils.mkdir_p("tmp/test_cache_dir")
+            allow(controller).to receive(:error_image).with(:unauthorized).and_return(unauthorized_image)
+            allow(Riiif::Image).to receive(:cache).and_return(ActiveSupport::Cache::FileStore.new("tmp/test_cache_dir"))
+            # Do not cache the image info for now so that we can check if the cache is empty later
+            allow(Riiif::Image).to receive(:info_service).and_return(lambda { |_, image| image.info })
+          end
+
+          let(:unauthorized_image) { Riiif::Image.new('abcd1234', file) }
+          let(:file) { instance_double(Riiif::File, extract: 'test data', info: {}) }
+
+          it 'does not cache the unauthorized image' do
+            expect(Riiif::Image.cache).not_to receive(:fetch)
+            get :show, params: { id: 'abcd1234', action: 'show', region: 'full', size: 'full',
+                                 rotation: '0', quality: 'default', format: 'jpg' }
+            expect(Dir.empty?("tmp/test_cache_dir")).to be true
+            FileUtils.rm_rf "tmp/test_cache_dir"
+          end
+
+        end
       end
 
       context 'with Riiif::unauthorized_image left to nil' do
@@ -97,14 +119,14 @@ RSpec.describe Riiif::ImagesController do
         end
 
         it "sends the default 'not found' image for failed http files" do
-          not_found_image = double
+          not_found_image = instance_double(Riiif::Image)
           expect(Riiif::Image).to receive(:new) do |_id, file|
             raise Riiif::ImageNotFoundError unless file.present?
             not_found_image
           end.twice
           expect(not_found_image).to receive(:render).with({ 'region' => 'full', 'size' => 'full',
                                                            'rotation' => '0', 'quality' => 'default',
-                                                           'format' => 'jpg' }).and_return('default-image-data')
+                                                           'format' => 'jpg' }, cache_image: false).and_return('default-image-data')
 
           get :show, params: { id: 'bad_id', action: 'show', region: 'full', size: 'full',
                                rotation: '0', quality: 'default', format: 'jpg' }
@@ -120,7 +142,7 @@ RSpec.describe Riiif::ImagesController do
           end.twice
           expect(not_found_image).to receive(:render).with({ 'region' => 'full', 'size' => 'full',
                                                            'rotation' => '0', 'quality' => 'default',
-                                                           'format' => 'jpg' }).and_return('default-image-data')
+                                                           'format' => 'jpg' }, cache_image: false).and_return('default-image-data')
 
           get :show, params: { id: 'bad_id', action: 'show', region: 'full', size: 'full',
                                rotation: '0', quality: 'default', format: 'jpg' }

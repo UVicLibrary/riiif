@@ -18,9 +18,12 @@ module Riiif
         status = :not_found
       end
 
-      image = error_image(status) unless status == :ok
+      if status == :ok
+        data = image.render(image_request_params)
+      else
+        data = error_image(status).render(image_request_params, cache_image: false)
+      end
 
-      data = image.render(image_request_params)
       headers['Access-Control-Allow-Origin'] = '*'
       # Set a Cache-Control header
       expires_in cache_expires, public: public_cache? if status == :ok

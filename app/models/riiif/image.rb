@@ -35,12 +35,18 @@ module Riiif
 
     ##
     # @param [ActiveSupport::HashWithIndifferentAccess] args
+    # @param [Boolean] whether or not to cache the image; this is set to false for error images
     # @return [String] the image data
-    def render(args)
+    def render(args, cache_image: true)
+
       cache_opts = args.select { |a| %w(region size quality rotation format).include? a.to_s }
       key = Image.cache_key(id, cache_opts)
 
-      cache.fetch(key, compress: true, expires_in: Image.expires_in) do
+      if cache_image
+        cache.fetch(key, compress: true, expires_in: Image.expires_in) do
+          file.extract(IIIF::Image::OptionDecoder.decode(args), info)
+        end
+      else
         file.extract(IIIF::Image::OptionDecoder.decode(args), info)
       end
     end
